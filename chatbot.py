@@ -67,6 +67,7 @@ if prompt := st.chat_input("What is up?"):
     "role": chat_role,
     "content": prompt,
   }
+  # function role need name
   if chat_role == "function":
     user_msg.update({"name": "dummy"})
   # Display user message
