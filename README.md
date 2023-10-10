@@ -9,3 +9,5 @@ pip install -r requirements.txt
 streamlit run chatbot.py
 ```
 Dependency: `openai`, `streamlit`.
+
+- To add function call, put your function into the directory `functions` and write the description in the `functions/__init__.py`.
