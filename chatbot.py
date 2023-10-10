@@ -1,6 +1,7 @@
 import streamlit as st
 import openai
 from utils.streamlit import append_history
+from utils.openai import Stream2Msgs
 
 st.title("💬 Chatbot")
 st.caption("🚀 A streamlit chatbot powered by OpenAI LLM")
@@ -30,7 +31,7 @@ with st.sidebar:
     "top_p": st.slider("top_p", min_value=0.0, max_value=1.0, value=1.0),
     "presence_penalty": st.slider("presence_penalty", min_value=-2.0, max_value=2.0, value=0.0),
     "frequency_penalty": st.slider("frequency_penalty", min_value=-2.0, max_value=2.0, value=0.0),
-    "stream": False,
+    "stream": True,
   }
 
 # Chat input
@@ -53,10 +54,26 @@ if prompt := st.chat_input("What is up?"):
   )
   # Number of choices
   n = chat_params.get("n")
-  # Assistant messages
-  assistant_msgs = [dict(response.choices[i].message) for i in range(n)]
-  # Display assistant message
+  # To concatenate tokens in delta
+  full_msgs = Stream2Msgs(n)
+  # Placeholders
   with st.chat_message("assistant"):
-    for i in range(n):
-      st.write(assistant_msgs[i].get("content"))
-      st.button(f"Choose No.{i}", on_click=append_history, args=[assistant_msgs, i])
+    placeholders = [
+      {
+        "text": st.empty(),
+        "button": st.button(
+          f"Choose Answer No. {i+1}",
+          on_click=append_history, args=[full_msgs, i]
+        ) if n > 1 else None,
+        "_divider": st.divider() if n > 1 else None,
+      } for i in range(n)
+    ]
+  # Write delta on placeholders
+  for res in response:
+    i, msg = full_msgs(res)
+    placeholders[i].get("text").write(msg.get("content") + "▌")
+  # Write full message on placeholders
+  for i in range(n):
+    placeholders[i].get("text").write(full_msgs.msgs[i].get("content"))
+  if n == 1:
+    append_history(full_msgs, 0)
