@@ -1,5 +1,6 @@
 import streamlit as st
 import openai
+from utils.streamlit import append_history
 
 st.title("💬 Chatbot")
 st.caption("🚀 A streamlit chatbot powered by OpenAI LLM")
@@ -23,8 +24,7 @@ with st.sidebar:
   st.header("Parameters")
   chat_params = {
     "model": st.selectbox("model", ["gpt-3.5-turbo-0613", "gpt-3.5-turbo-16k-0613", "gpt-4-0613", "gpt-4-32k-0613"]),
-    "n": 1,
-    # "n": st.number_input("n", min_value=1, value=1),
+    "n": st.number_input("n", min_value=1, value=1),
     "temperature": st.slider("temperature", min_value=0.0, max_value=2.0, value=1.0),
     "max_tokens": st.number_input("max_tokens", min_value=1, value=512),
     "top_p": st.slider("top_p", min_value=0.0, max_value=1.0, value=1.0),
@@ -51,10 +51,12 @@ if prompt := st.chat_input("What is up?"):
     messages=st.session_state.messages,
     **chat_params
   )
-  # Assistant message
-  assistant_msg = dict(response.choices[0].message)
+  # Number of choices
+  n = chat_params.get("n")
+  # Assistant messages
+  assistant_msgs = [dict(response.choices[i].message) for i in range(n)]
   # Display assistant message
   with st.chat_message("assistant"):
-    st.write(assistant_msg.get("content"))
-  # Append to history
-  st.session_state.messages.append(assistant_msg)
+    for i in range(n):
+      st.write(assistant_msgs[i].get("content"))
+      st.button(f"Choose No.{i}", on_click=append_history, args=[assistant_msgs, i])
