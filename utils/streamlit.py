@@ -17,3 +17,6 @@ def append_history(msgs:Stream2Msgs, i:int):
         "arguments": msg.get("function_call").get("arguments")
       }
     })
+
+def undo():
+  st.session_state.messages = st.session_state.messages[:-1]

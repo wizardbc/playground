@@ -1,6 +1,6 @@
 import streamlit as st
 import openai
-from utils.streamlit import append_history
+from utils.streamlit import append_history, undo
 from utils.openai import Stream2Msgs
 
 st.title("💬 Chatbot")
@@ -21,6 +21,11 @@ for msg in st.session_state.messages:
 
 # Sidebar for parameters
 with st.sidebar:
+  # Role selection and Undo
+  st.header("Chat")
+  chat_role = st.selectbox("role", ["system", "assistant", "user", "function"], index=2)
+  st.button("Undo", on_click=undo)
+
   # ChatCompletion parameters
   st.header("Parameters")
   chat_params = {
@@ -38,42 +43,43 @@ with st.sidebar:
 if prompt := st.chat_input("What is up?"):
   # User message
   user_msg = {
-    "role": "user",
+    "role": chat_role,
     "content": prompt,
   }
   # Display user message
-  with st.chat_message("user"):
+  with st.chat_message(chat_role):
     st.write(prompt)
   # Append to history
   st.session_state.messages.append(user_msg)
 
-  # ChatCompletion
-  response = openai.ChatCompletion.create(
-    messages=st.session_state.messages,
-    **chat_params
-  )
-  # Number of choices
-  n = chat_params.get("n")
-  # To concatenate tokens in delta
-  full_msgs = Stream2Msgs(n)
-  # Placeholders
-  with st.chat_message("assistant"):
-    placeholders = [
-      {
-        "text": st.empty(),
-        "button": st.button(
-          f"Choose Answer No. {i+1}",
-          on_click=append_history, args=[full_msgs, i]
-        ) if n > 1 else None,
-        "_divider": st.divider() if n > 1 else None,
-      } for i in range(n)
-    ]
-  # Write delta on placeholders
-  for res in response:
-    i, msg = full_msgs(res)
-    placeholders[i].get("text").write(msg.get("content") + "▌")
-  # Write full message on placeholders
-  for i in range(n):
-    placeholders[i].get("text").write(full_msgs.msgs[i].get("content"))
-  if n == 1:
-    append_history(full_msgs, 0)
+  if chat_role == "user":
+    # ChatCompletion
+    response = openai.ChatCompletion.create(
+      messages=st.session_state.messages,
+      **chat_params
+    )
+    # Number of choices
+    n = chat_params.get("n")
+    # To concatenate tokens in delta
+    full_msgs = Stream2Msgs(n)
+    # Placeholders
+    with st.chat_message("assistant"):
+      placeholders = [
+        {
+          "text": st.empty(),
+          "button": st.button(
+            f"Choose Answer No. {i+1}",
+            on_click=append_history, args=[full_msgs, i]
+          ) if n > 1 else None,
+          "_divider": st.divider() if n > 1 else None,
+        } for i in range(n)
+      ]
+    # Write delta on placeholders
+    for res in response:
+      i, msg = full_msgs(res)
+      placeholders[i].get("text").write(msg.get("content") + "▌")
+    # Write full message on placeholders
+    for i in range(n):
+      placeholders[i].get("text").write(full_msgs.msgs[i].get("content"))
+    if n == 1:
+      append_history(full_msgs, 0)
