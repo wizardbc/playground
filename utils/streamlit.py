@@ -55,6 +55,7 @@ def stream_display(response:iter, n:int=1):
     placeholders[i].get("text").write(full_msgs.msgs[i].get("content"))
     if f_name := full_msgs.msgs[i].get("function_call", {}).get("name", ""):
       f_args = full_msgs.msgs[i].get("function_call").get("arguments", "")
-      placeholders[i].get("text").write(f"function_call: {f_name}, args: {f_args}")
+      placeholders[i].get("text").write(f"function_call: {f_name}(), args: {f_args}")
   if n == 1:
     append_history(full_msgs, 0)
+    st.rerun()

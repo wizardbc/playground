@@ -14,15 +14,6 @@ openai.api_key = st.secrets["OPENAI_API_KEY"]
 if "messages" not in st.session_state:
   st.session_state.messages = []
 
-# Display messages in history
-for msg in st.session_state.messages:
-  with st.chat_message(msg.get("role")):
-    if content := msg.get("content", ""):
-      st.write(content)
-    if f_name := msg.get("function_call", {}).get("name", ""):
-      f_args = msg.get("function_call").get("arguments", "")
-      st.write(f"function_call: {f_name}, args: {f_args}")
-
 # Sidebar for parameters
 with st.sidebar:
   # Role selection and Undo
@@ -30,6 +21,10 @@ with st.sidebar:
   chat_role = st.selectbox("role", ["system", "assistant", "user", "function"], index=2)
   st.button("Undo", on_click=undo)
 
+  st.subheader("Visible")
+  system_checkbox = st.checkbox("system", value=True)
+  f_call_checkbox = st.checkbox("function", value=True)
+  
   # ChatCompletion parameters
   st.header("Parameters")
   chat_params = {
@@ -46,6 +41,24 @@ with st.sidebar:
   # Functions
   st.header("Functions")
   func_checkbox = [st.checkbox(f.get("desc").get("name")) for f in functions.available]
+
+# Display messages in history
+roles = ["user", "assistant"]
+if system_checkbox:
+  roles.append("system")
+if f_call_checkbox:
+  roles.append("function")
+
+for msg in st.session_state.messages:
+  if (role := msg.get("role")) in roles:
+    if content := msg.get("content", ""):
+      with st.chat_message(role):
+        st.write(content)
+    if f_call_checkbox:
+      if f_name := msg.get("function_call", {}).get("name", ""):
+        f_args = msg.get("function_call").get("arguments", "")
+        with st.chat_message(role):
+          st.write(f"function_call: {f_name}(), args: {f_args}")
 
 # In the case of the role of the last entry of the history is function
 if st.session_state.messages:
