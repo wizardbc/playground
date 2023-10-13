@@ -58,3 +58,4 @@ def stream_display(response:iter, n:int=1):
       placeholders[i].get("text").write(f"function_call: {f_name}, args: {f_args}")
   if n == 1:
     append_history(full_msgs, 0)
+    st.rerun()
