@@ -1,14 +1,18 @@
 import streamlit as st
 import openai
-from utils.streamlit import append_history, undo, stream_display
-from utils.openai import Stream2Msgs
+from utils.streamlit import undo, stream_display
 import functions
 
 st.title("💬 Chatbot")
 st.caption("🚀 A streamlit chatbot powered by OpenAI LLM")
 
 # OpenAI API key
-openai.api_key = st.secrets["OPENAI_API_KEY"]
+if "api_key" not in st.session_state:
+  try:
+    st.session_state.api_key = st.secrets["OPENAI_API_KEY"]
+  except:
+    st.session_state.api_key = ""
+    st.write("Your OpenAI API Key is not provided in `.streamlit/secrets.toml`, but you can input one in the sidebar for temporary use.")
 
 # Initialize chat history
 if "messages" not in st.session_state:
@@ -16,6 +20,13 @@ if "messages" not in st.session_state:
 
 # Sidebar for parameters
 with st.sidebar:
+  # OpenAI API Key
+  if not st.session_state.api_key:
+    st.header("OpenAI API Key")
+    st.session_state.api_key = st.text_input("OpenAI API Key", type="password")
+  else:
+    openai.api_key = st.session_state.api_key
+
   # Role selection and Undo
   st.header("Chat")
   chat_role = st.selectbox("role", ["system", "assistant", "user", "function"], index=2)
@@ -74,7 +85,7 @@ if st.session_state.messages:
     stream_display(response, n)
 
 # Chat input
-if prompt := st.chat_input("What is up?"):
+if prompt := st.chat_input():
   # User message
   user_msg = {
     "role": chat_role,
