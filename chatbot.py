@@ -2,6 +2,8 @@ import streamlit as st
 import openai
 from utils.streamlit import undo, stream_display
 import functions
+import json
+from datetime import datetime
 
 st.title("💬 Chatbot")
 st.caption("🚀 A streamlit chatbot powered by OpenAI LLM")
@@ -52,6 +54,24 @@ with st.sidebar:
   # Functions
   st.header("Functions")
   func_checkbox = [st.checkbox(f.get("desc").get("name")) for f in functions.available]
+
+  # Upload and Download
+  st.header("Upload & Download Conversation")
+  with st.form("Upload", clear_on_submit=True):
+    uploaded_file = st.file_uploader(
+      label="Choose a JSON file",
+      accept_multiple_files=False,
+      type='json'
+    )
+    submitted = st.form_submit_button("Upload")
+    if (uploaded_file is not None) and submitted:
+      st.session_state.messages = json.load(uploaded_file)
+  st.download_button(
+    label="Download the JSON file",
+    data=json.dumps(st.session_state.messages),
+    file_name=f'chat_history_{datetime.now().strftime("%Y%m%d%H%M%S")}.json',
+    mime="application/json"
+  )
 
 # Display messages in history
 roles = ["user", "assistant"]
