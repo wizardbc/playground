@@ -1,3 +1,6 @@
+import openai
+from tenacity import retry, stop_after_attempt, wait_random_exponential
+
 class Stream2Msgs:
   def __init__(self, n=1, role="assistant"):
     self.msgs = [
@@ -26,3 +29,10 @@ class Stream2Msgs:
   def __call__(self, res):
     i = self.input(res)
     return i, self.msgs[i]
+
+@retry(wait=wait_random_exponential(min=1, max=20), stop=stop_after_attempt(6))
+def get_response(messages, **kwargs):
+  return openai.ChatCompletion.create(
+    messages=messages,
+    **kwargs
+  )

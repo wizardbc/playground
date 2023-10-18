@@ -1,6 +1,7 @@
 import streamlit as st
 import openai
 from utils.streamlit import undo, stream_display
+from utils.openai import get_response
 import functions
 import json
 from datetime import datetime
@@ -95,10 +96,7 @@ for msg in st.session_state.messages:
 if st.session_state.messages:
   if st.session_state.messages[-1].get("role") == "function":
     # ChatCompletion
-    response = openai.ChatCompletion.create(
-      messages=st.session_state.messages,
-      **chat_params
-    )
+    response = get_response(messages=st.session_state.messages, **chat_params)
     # Number of choices
     n = chat_params.get("n")
     # Stream display
@@ -129,10 +127,7 @@ if prompt := st.chat_input():
       chat_params.pop("functions", None)
 
     # ChatCompletion
-    response = openai.ChatCompletion.create(
-      messages=st.session_state.messages,
-      **chat_params
-    )
+    response = get_response(messages=st.session_state.messages, **chat_params)
     # Number of choices
     n = chat_params.get("n")
     # Stream display
