@@ -1,7 +1,6 @@
 import streamlit as st
 from openai import OpenAI
-from utils.streamlit import undo, stream_display
-from utils.openai import get_response
+from utils.streamlit import undo, run, set_run
 import functions
 import json
 from datetime import datetime
@@ -20,6 +19,8 @@ if "api_key" not in st.session_state:
 # Initialize chat history
 if "messages" not in st.session_state:
   st.session_state.messages = []
+if "run" not in st.session_state:
+  set_run(False)
 
 # Sidebar for parameters
 with st.sidebar:
@@ -33,7 +34,11 @@ with st.sidebar:
   # Role selection and Undo
   st.header("Chat")
   chat_role = st.selectbox("role", ["system", "assistant", "user", "function"], index=2)
-  st.button("Undo", on_click=undo)
+  columns = st.columns([1,1,1])
+  with columns[0]:
+    st.button("Run", on_click=set_run, type='primary', use_container_width=True)
+  with columns[1]:
+    st.button("Undo", on_click=undo, use_container_width=True)
 
   st.subheader("Visible")
   system_checkbox = st.checkbox("system", value=True)
@@ -95,12 +100,7 @@ for msg in st.session_state.messages:
 # In the case of the role of the last entry of the history is function
 if st.session_state.messages:
   if st.session_state.messages[-1].get("role") == "function":
-    # ChatCompletion
-    response = get_response(cl=openai_cl, messages=st.session_state.messages, **chat_params)
-    # Number of choices
-    n = chat_params.get("n")
-    # Stream display
-    stream_display(response, n)
+    set_run()
 
 # Chat input
 if prompt := st.chat_input():
@@ -125,10 +125,8 @@ if prompt := st.chat_input():
       chat_params["functions"] = func_desc
     else:
       chat_params.pop("functions", None)
+    set_run()
 
-    # ChatCompletion
-    response = get_response(cl=openai_cl, messages=st.session_state.messages, **chat_params)
-    # Number of choices
-    n = chat_params.get("n")
-    # Stream display
-    stream_display(response, n)
+if st.session_state.run:
+  # ChatCompletion
+  run(openai_cl, st.session_state.messages, **chat_params)

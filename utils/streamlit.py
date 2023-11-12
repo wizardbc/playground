@@ -1,6 +1,6 @@
 import streamlit as st
 import json
-from .openai import Stream2Msgs
+from .openai import Stream2Msgs, get_response
 import functions
 
 def append_history(msgs:Stream2Msgs, i:int):
@@ -59,3 +59,15 @@ def stream_display(response:iter, n:int=1):
   if n == 1:
     append_history(full_msgs, 0)
     st.rerun()
+
+def set_run(state=True):
+  st.session_state.run = state
+
+def run(cl, messages, **kwargs):
+  set_run(False)
+  # ChatCompletion
+  response = get_response(cl, messages, **kwargs)
+  # Number of choices
+  n = kwargs.get("n")
+  # Stream display
+  stream_display(response, n)
