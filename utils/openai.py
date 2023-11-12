@@ -1,4 +1,3 @@
-import openai
 from tenacity import retry, stop_after_attempt, wait_random_exponential
 
 class Stream2Msgs:
@@ -17,13 +16,13 @@ class Stream2Msgs:
   def input(self, res):
     i = res.choices[0].index
     delta = res.choices[0].delta
-    if content := delta.get("content", ""):
+    if content:=delta.content:
       self.msgs[i]["content"] += content
-    if f_call := delta.get("function_call", {}):
-      name = f_call.get("name", "")
-      self.msgs[i]["function_call"]["name"] += name
-      args = f_call.get("arguments", "")
-      self.msgs[i]["function_call"]["arguments"] += args
+    if f_call := delta.function_call:
+      if name:=f_call.name:
+        self.msgs[i]["function_call"]["name"] += name
+      if args:=f_call.arguments:
+        self.msgs[i]["function_call"]["arguments"] += args
     return i
 
   def __call__(self, res):
@@ -31,8 +30,8 @@ class Stream2Msgs:
     return i, self.msgs[i]
 
 @retry(wait=wait_random_exponential(min=1, max=20), stop=stop_after_attempt(6))
-def get_response(messages, **kwargs):
-  return openai.ChatCompletion.create(
+def get_response(cl, messages, **kwargs):
+  return cl.chat.completions.create(
     messages=messages,
     **kwargs
   )

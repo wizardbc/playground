@@ -1,5 +1,5 @@
 import streamlit as st
-import openai
+from openai import OpenAI
 from utils.streamlit import undo, stream_display
 from utils.openai import get_response
 import functions
@@ -28,7 +28,7 @@ with st.sidebar:
     st.header("OpenAI API Key")
     st.session_state.api_key = st.text_input("OpenAI API Key", type="password")
   else:
-    openai.api_key = st.session_state.api_key
+    openai_cl = OpenAI(api_key=st.session_state.api_key)
 
   # Role selection and Undo
   st.header("Chat")
@@ -42,7 +42,7 @@ with st.sidebar:
   # ChatCompletion parameters
   st.header("Parameters")
   chat_params = {
-    "model": st.selectbox("model", ["gpt-3.5-turbo-0613", "gpt-3.5-turbo-16k-0613", "gpt-4-0613", "gpt-4-32k-0613"]),
+    "model": st.selectbox("model", ["gpt-3.5-turbo-1106", "gpt-3.5-turbo-0613", "gpt-3.5-turbo-16k-0613", "gpt-4-1106-preview", "gpt-4-0613", "gpt-4-32k-0613"]),
     "n": st.number_input("n", min_value=1, value=1),
     "temperature": st.slider("temperature", min_value=0.0, max_value=2.0, value=1.0),
     "max_tokens": st.number_input("max_tokens", min_value=1, value=512),
@@ -96,7 +96,7 @@ for msg in st.session_state.messages:
 if st.session_state.messages:
   if st.session_state.messages[-1].get("role") == "function":
     # ChatCompletion
-    response = get_response(messages=st.session_state.messages, **chat_params)
+    response = get_response(cl=openai_cl, messages=st.session_state.messages, **chat_params)
     # Number of choices
     n = chat_params.get("n")
     # Stream display
@@ -127,7 +127,7 @@ if prompt := st.chat_input():
       chat_params.pop("functions", None)
 
     # ChatCompletion
-    response = get_response(messages=st.session_state.messages, **chat_params)
+    response = get_response(cl=openai_cl, messages=st.session_state.messages, **chat_params)
     # Number of choices
     n = chat_params.get("n")
     # Stream display
