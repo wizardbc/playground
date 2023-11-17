@@ -1,6 +1,6 @@
 import streamlit as st
 from openai import OpenAI
-from utils.streamlit import undo, run, set_run
+from utils.streamlit import undo, init_msgs, run, set_run
 import functions
 import json
 from datetime import datetime
@@ -18,7 +18,7 @@ if "api_key" not in st.session_state:
 
 # Initialize chat history
 if "messages" not in st.session_state:
-  st.session_state.messages = []
+  init_msgs()
 if "run" not in st.session_state:
   set_run(False)
 
@@ -39,6 +39,8 @@ with st.sidebar:
     st.button("Run", on_click=set_run, type='primary', use_container_width=True)
   with columns[1]:
     st.button("Undo", on_click=undo, use_container_width=True)
+  with columns[2]:
+    st.button("Clear", on_click=init_msgs, use_container_width=True)
 
   st.subheader("Visible")
   system_checkbox = st.checkbox("system", value=True)

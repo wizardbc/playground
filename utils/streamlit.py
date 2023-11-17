@@ -31,6 +31,9 @@ def append_history(msgs:Stream2Msgs, i:int):
 def undo():
   st.session_state.messages = st.session_state.messages[:-1]
 
+def init_msgs():
+  st.session_state.messages = []
+
 def stream_display(response:iter, n:int=1):
   # To concatenate tokens in delta
   full_msgs = Stream2Msgs(n)
