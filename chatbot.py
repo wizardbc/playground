@@ -1,4 +1,5 @@
 import streamlit as st
+from PIL import Image
 import google.generativeai as genai
 
 st.title("💬 Chatbot")
@@ -14,6 +15,7 @@ if "api_key" not in st.session_state:
 
 def init_messages() -> None:
   st.session_state.messages = []
+  st.session_state.img_file_buffer = None
 
 def undo() -> None:
   st.session_state.messages.pop()
@@ -24,7 +26,6 @@ def set_generate(state=True):
 # Initialize chat history
 if "messages" not in st.session_state:
   init_messages()
-if "generate" not in st.session_state:
   set_generate(False)
 
 safety_settings={
@@ -33,12 +34,6 @@ safety_settings={
   'sex':'block_none',
   'danger':'block_none',
 }
-
-# Display messages in history
-for msg in st.session_state.messages:
-  if parts := msg.get("parts", []):
-    with st.chat_message(msg.get("role")):
-      st.write('\n'.join(parts))
 
 # Sidebar for parameters
 with st.sidebar:
@@ -71,21 +66,42 @@ with st.sidebar:
     "top_p": st.slider("top_p", min_value=0.0, max_value=1.0, value=1.0),
   }
 
+# Camera input
+if model_name == 'gemini-pro-vision':
+  if st.session_state.img_file_buffer is None:
+    img_file_buffer = st.camera_input("Take a picture")
+    if img_file_buffer is not None:
+      st.session_state.img_file_buffer = img_file_buffer
+    uploaded_file = st.file_uploader("Choose a file", type=['jpg', 'png'])
+    if uploaded_file is not None:
+      st.session_state.img_file_buffer = uploaded_file
+  else:
+    st.image(st.session_state.img_file_buffer)
+  st.write("* The vision model `gemini-pro-vision` is not optimized for multi-turn chat.")
+
+# Display messages in history
+for msg in st.session_state.messages:
+  if parts := msg.get("parts", []):
+    with st.chat_message('human' if msg.get("role") == 'user' else 'ai'):
+      for p in parts:
+        st.write(p)
+
 # Chat input
 if prompt := st.chat_input("What is up?"):
   # User message
   user_msg = {
     "role": chat_role,
-    "parts": [prompt],
+    "parts": [prompt]
   }
+
   # Display user message
-  with st.chat_message(chat_role):
+  with st.chat_message('human' if chat_role == 'user' else 'ai'):
     st.write(prompt)
   # Append to history
   st.session_state.messages.append(user_msg)
 
   if chat_role == 'user':
-    set_generate()
+    set_generate(True)
 
 if st.session_state.generate:
   set_generate(False)
@@ -93,10 +109,15 @@ if st.session_state.generate:
   model = genai.GenerativeModel(model_name=model_name,
                                 generation_config=generation_config,
                                 safety_settings=safety_settings)
-  response = model.generate_content(st.session_state.messages, stream=True)
+  if model_name == 'gemini-pro-vision':
+    if st.session_state.img_file_buffer is not None:
+      img = Image.open(st.session_state.img_file_buffer)
+      response = model.generate_content([prompt, img], stream=True)
+  else:
+    response = model.generate_content(st.session_state.messages, stream=True)
 
   # Stream display
-  with st.chat_message("model"):
+  with st.chat_message("ai"):
     placeholder = st.empty()
   text = ''
   for chunk in response:
