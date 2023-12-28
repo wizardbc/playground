@@ -1,36 +1,52 @@
 import streamlit as st
-import openai
+import google.generativeai as genai
 
 st.title("💬 Chatbot")
-st.caption("🚀 A streamlit chatbot powered by OpenAI LLM")
+st.caption("🚀 A streamlit chatbot powered by Google Gemini")
 
-# OpenAI API key
-openai.api_key = st.secrets["OPENAI_API_KEY"]
+# Google API key
+if "api_key" not in st.session_state:
+  try:
+    st.session_state.api_key = st.secrets["GOOGLE_API_KEY"]
+  except:
+    st.session_state.api_key = ""
+    st.write("Your Google API Key is not provided in `.streamlit/secrets.toml`, but you can input one in the sidebar for temporary use.")
 
 # Initialize chat history
 if "messages" not in st.session_state:
   st.session_state.messages = []
 
+safety_settings={
+  'harassment':'block_none',
+  'hate':'block_none',
+  'sex':'block_none',
+  'danger':'block_none',
+}
+
 # Display messages in history
 for msg in st.session_state.messages:
-  if content := msg.get("content", ""):
+  if parts := msg.get("parts", []):
     with st.chat_message(msg.get("role")):
-      st.write(content)
+      st.write('\n'.join(parts))
 
 # Sidebar for parameters
 with st.sidebar:
+  # Google API Key
+  if not st.session_state.api_key:
+    st.header("Google API Key")
+    st.session_state.api_key = st.text_input("Google API Key", type="password")
+  else:
+    genai.configure(api_key=st.session_state.api_key)
+
   # ChatCompletion parameters
   st.header("Parameters")
-  chat_params = {
-    "model": st.selectbox("model", ["gpt-3.5-turbo-0613", "gpt-3.5-turbo-16k-0613", "gpt-4-0613", "gpt-4-32k-0613"]),
-    "n": 1,
-    # "n": st.number_input("n", min_value=1, value=1),
-    "temperature": st.slider("temperature", min_value=0.0, max_value=2.0, value=1.0),
-    "max_tokens": st.number_input("max_tokens", min_value=1, value=512),
+  model_name = st.selectbox("model_name",
+      [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods])
+  generation_config = {
+    "temperature": st.slider("temperature", min_value=0.0, max_value=1.0, value=0.9),
+    "max_output_tokens": st.number_input("max_tokens", min_value=1, value=2048),
+    "top_k": st.slider("top_k", min_value=1, value=1),
     "top_p": st.slider("top_p", min_value=0.0, max_value=1.0, value=1.0),
-    "presence_penalty": st.slider("presence_penalty", min_value=-2.0, max_value=2.0, value=0.0),
-    "frequency_penalty": st.slider("frequency_penalty", min_value=-2.0, max_value=2.0, value=0.0),
-    "stream": False,
   }
 
 # Chat input
@@ -38,7 +54,7 @@ if prompt := st.chat_input("What is up?"):
   # User message
   user_msg = {
     "role": "user",
-    "content": prompt,
+    "parts": [prompt],
   }
   # Display user message
   with st.chat_message("user"):
@@ -46,15 +62,20 @@ if prompt := st.chat_input("What is up?"):
   # Append to history
   st.session_state.messages.append(user_msg)
 
-  # ChatCompletion
-  response = openai.ChatCompletion.create(
-    messages=st.session_state.messages,
-    **chat_params
-  )
-  # Assistant message
-  assistant_msg = dict(response.choices[0].message)
-  # Display assistant message
-  with st.chat_message("assistant"):
-    st.write(assistant_msg.get("content"))
-  # Append to history
-  st.session_state.messages.append(assistant_msg)
+  # Generate
+  model = genai.GenerativeModel(model_name=model_name,
+                                generation_config=generation_config,
+                                safety_settings=safety_settings)
+  response = model.generate_content(st.session_state.messages, stream=True)
+
+  with st.chat_message("model"):
+    placeholder = st.empty()
+  text = ''
+  for chunk in response:
+    text += chunk.text
+    placeholder.write(text + "▌")
+  placeholder.write(text)
+  st.session_state.messages.append({
+    'role': 'model',
+    'parts': [text]
+  })
