@@ -1,4 +1,7 @@
 import streamlit as st
+
+import requests
+from io import BytesIO
 from PIL import Image
 import google.generativeai as genai
 
@@ -66,7 +69,7 @@ with st.sidebar:
     "top_p": st.slider("top_p", min_value=0.0, max_value=1.0, value=1.0),
   }
 
-# Camera input
+# Image input
 if model_name == 'gemini-pro-vision':
   if st.session_state.img is None:
     img_file_buffer = st.camera_input("Take a picture")
@@ -75,7 +78,10 @@ if model_name == 'gemini-pro-vision':
     uploaded_file = st.file_uploader("Choose a file", type=['jpg', 'png'])
     if uploaded_file is not None:
       st.session_state.img = Image.open(uploaded_file)
-
+    img_url = st.text_input("URL")
+    if img_url:
+      response = requests.get(img_url)
+      st.session_state.img = Image.open(BytesIO(response.content))
   else:
     st.image(st.session_state.img)
   st.write("* The vision model `gemini-pro-vision` is not optimized for multi-turn chat.")
