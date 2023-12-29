@@ -15,7 +15,7 @@ if "api_key" not in st.session_state:
 
 def init_messages() -> None:
   st.session_state.messages = []
-  st.session_state.img_file_buffer = None
+  st.session_state.img = None
 
 def undo() -> None:
   st.session_state.messages.pop()
@@ -32,7 +32,7 @@ safety_settings={
   'harassment':'block_none',
   'hate':'block_none',
   'sex':'block_none',
-  'danger':'block_none',
+  'danger':'block_none'
 }
 
 # Sidebar for parameters
@@ -68,15 +68,16 @@ with st.sidebar:
 
 # Camera input
 if model_name == 'gemini-pro-vision':
-  if st.session_state.img_file_buffer is None:
+  if st.session_state.img is None:
     img_file_buffer = st.camera_input("Take a picture")
     if img_file_buffer is not None:
-      st.session_state.img_file_buffer = img_file_buffer
+      st.session_state.img = Image.open(img_file_buffer)
     uploaded_file = st.file_uploader("Choose a file", type=['jpg', 'png'])
     if uploaded_file is not None:
-      st.session_state.img_file_buffer = uploaded_file
+      st.session_state.img = Image.open(uploaded_file)
+
   else:
-    st.image(st.session_state.img_file_buffer)
+    st.image(st.session_state.img)
   st.write("* The vision model `gemini-pro-vision` is not optimized for multi-turn chat.")
 
 # Display messages in history
@@ -110,9 +111,8 @@ if st.session_state.generate:
                                 generation_config=generation_config,
                                 safety_settings=safety_settings)
   if model_name == 'gemini-pro-vision':
-    if st.session_state.img_file_buffer is not None:
-      img = Image.open(st.session_state.img_file_buffer)
-      response = model.generate_content([prompt, img], stream=True)
+    if st.session_state.img is not None:
+      response = model.generate_content([*st.session_state.messages[-1].get('parts', ''), st.session_state.img], stream=True)
   else:
     response = model.generate_content(st.session_state.messages, stream=True)
 
