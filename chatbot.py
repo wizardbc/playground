@@ -65,7 +65,7 @@ with st.sidebar:
   generation_config = {
     "temperature": st.slider("temperature", min_value=0.0, max_value=1.0, value=0.9),
     "max_output_tokens": st.number_input("max_tokens", min_value=1, value=2048),
-    "top_k": st.slider("top_k", min_value=1, value=1),
+    "top_k": st.slider("top_k", min_value=1, max_value=40, value=None),
     "top_p": st.slider("top_p", min_value=0.0, max_value=1.0, value=1.0),
   }
 
